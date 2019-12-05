@@ -10,6 +10,11 @@ import vkinder2
 
 
 class TestVKinder2(unittest.TestCase):
+    
+    # включать только для тестирования get_top10, иначе не отработает тест score_matches
+    # def setUp:
+        # score_matches() = {'id': , 'score': 10}
+        
 
     def test_get_user_data(self):
         result = vkinder2.get_user_data("erezerblade")
