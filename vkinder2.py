@@ -67,12 +67,17 @@ def get_user_data(user_id):
     if not data.get('music'):
         data.update({'music': str(input('Введите ваших любимых музыкальных исполнителей через запятую: '))})
     USER_DATA.update(data)
+    return data
 
 
 # ищем матчи
-def search_for_matches():
+def search_for_matches(user_id):
     # распознаем пол
-    data = USER_DATA
+    if USER_DATA:
+        data = USER_DATA
+    else:
+        get_user_data(user_id)
+        data = USER_DATA
     if data.get('sex') == 2:
         sex = 1
     elif data.get('sex') == 1:
@@ -102,11 +107,11 @@ def search_for_matches():
 
 
 # добавляем группы
-def add_groups():
+def add_groups(user_id):
     vk_session = vk_api.VkApi(api_version='5.103',
                               token=ACCESS_TOKEN
                               )
-    matches = search_for_matches()
+    matches = search_for_matches(user_id)
     ids = []
     for i in matches:
         ids.append(i.get('id'))
@@ -138,7 +143,7 @@ def add_groups():
 # Первое - потому что является фильтром спамных страниц, второе - потому что вместо low_mark в случае наличия отношений
 # из счета вычитается high_mark. Все переменные mark умножаются на уровень приоритета, заданный пользователем через ввод
 # Можно регулировать модель скоринга, меняя значения переменных mark
-def score_matches(age, rel, mus, intr, friends, groups):
+def score_matches(user_id, age, rel, mus, intr, friends, groups):
     if age > 5 or age < 1:
         raise KeyError('Можно ввести только цифры от 1 до 5')
     if rel > 5 or rel < 1:
@@ -151,12 +156,12 @@ def score_matches(age, rel, mus, intr, friends, groups):
         raise KeyError('Можно ввести только цифры от 1 до 5')
     if groups > 5 or groups < 1:
         raise KeyError('Можно ввести только цифры от 1 до 5')
+    data = add_groups(user_id)
     user_data = USER_DATA
     user_bdate = user_data['bdate']
     user_music = user_data['music']
     user_interests = user_data['interests']
     user_groups = user_data['groups']
-    data = add_groups()
     high_mark = 3
     mid_mark = 2
     low_mark = 1
@@ -237,8 +242,9 @@ def score_matches(age, rel, mus, intr, friends, groups):
     return data
 
 
-def get_top10():
-    data = score_matches(age=int(input('Оцените от 1 до 5, насколько вам важен возраст партнера: ')),
+def get_top10(user_id):
+    data = score_matches(user_id,
+                         age=int(input('Оцените от 1 до 5, насколько вам важен возраст партнера: ')),
                          rel=int(input('Оцените от 1 до 5, насколько вам важны нынешние отношения партнера: ')),
                          mus=int(input('Оцените от 1 до 5, насколько вам важны музыкальные вкусы партнера: ')),
                          intr=int(input('Оцените от 1 до 5, насколько вам важны общие с партнером интересы: ')),
@@ -288,7 +294,7 @@ def get_top10():
 
 def store_to_db(user_id):
     get_user_data(user_id)
-    data = get_top10()
+    data = get_top10(user_id)
     for match in data:
         if not list(b_coll.find({'id': match.get('id')})):
             b_coll.insert_one(match)
@@ -297,6 +303,7 @@ def store_to_db(user_id):
 
 if __name__ == '__main__':
     store_to_db(input('Введите имя пользователя или ID: '))
+    # print(get_user_data('erezerblade'))
 
 # 2cf3437ecbb82e410781b3050c3cddab55ec962056685c16bb6f490f85cdbd09a80c1d6c44e3ba3a8101d
 # erezerblade

@@ -1,10 +1,46 @@
 from pymongo import MongoClient
 import unittest
 import vkinder2
+from unittest.mock import patch
 
 client = MongoClient('localhost', 27017)
 bitches_db = client['ticket_db']
 b_coll = bitches_db.collection
+
+USER_DATA = {'id': 4233870,
+                     'first_name': 'Леонид',
+                     'last_name': 'Кузьмин',
+                     'is_closed': False,
+                     'can_access_closed': True,
+                     'sex': 2,
+                     'bdate': '24.5.1991',
+                     'city': {'id': 1, 'title': 'Москва'},
+                     'interests': 'спорт, саморазвитие, магия, страдания, психоделия, йога, SEO, python',
+                     'music': 'Михаил Елизаров, Black Sabbath, Ольга Арефьева, Queen, The Beatles, Judas Priest, '
+                              'Metallica',
+                     'groups': [44760286,
+                                34215577,
+                                181088115,
+                                116098227,
+                                68832026,
+                                165205783,
+                                72988498,
+                                68995594,
+                                129762621,
+                                38691559,
+                                160426659,
+                                51048597,
+                                35862441,
+                                40886007,
+                                29534144,
+                                72495085,
+                                35595350,
+                                20629724,
+                                38793584,
+                                52537634,
+                                100419172,
+                                129440544,
+                                28261334]}
 
 
 class TestVKinder2(unittest.TestCase):
