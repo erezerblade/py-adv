@@ -12,6 +12,7 @@ bitches_db = client['ticket_db']
 b_coll = bitches_db.collection
 
 ACCESS_TOKEN = str(input('Введите ключ доступа: '))
+USER_DATA = {}
 
 
 def get_params(expand_params):
@@ -66,13 +67,13 @@ def get_user_data(user_id):
     # пользователь добавляет своих любимых исполнителей
     if not data.get('music'):
         data.update({'music': str(input('Введите ваших любимых музыкальных исполнителей через запятую: '))})
-    return data
+    USER_DATA.update(data)
 
 
 # ищем матчи
 def search_for_matches(user_id):
     # распознаем пол
-    data = get_user_data(user_id)
+    data = USER_DATA
     if data.get('sex') == 2:
         sex = 1
     elif data.get('sex') == 1:
@@ -131,10 +132,10 @@ def add_groups(user_id):
 # скоринг
 # все условные конструкции приведены к одной и той же модели 4 критериев:
 # 1) если в профиле партнера данных нет или к ним нет доступа, к общему счету прибавляется 0
-# 2) если данные есть, но они не совпадают с пользовательскими или скрыты, к ним прибаляется low_mark
+# 2) если данные есть, но они не совпадают с пользовательскими или скрыты, к ним прибавляется low_mark
 # 3) если данные есть, и по ним есть небольшие совпадения, к ним прибавляется mid_mark
 # 4) если данные есть, и по ним есть точное или широкое совпадение, к ним прибавляется high_mark
-# Исключениями из этой модели явяются только анализ статуса и отношений.
+# Исключениями из этой модели являются только анализ статуса и отношений.
 # Первое - потому что является фильтром спамных страниц, второе - потому что вместо low_mark в случае наличия отношений
 # из счета вычитается high_mark. Все переменные mark умножаются на уровень приоритета, заданный пользователем через ввод
 # Можно регулировать модель скоринга, меняя значения переменных mark
@@ -151,7 +152,7 @@ def score_matches(user_id, age, rel, mus, intr, friends, groups):
         raise KeyError('Можно ввести только цифры от 1 до 5')
     if groups > 5 or groups < 1:
         raise KeyError('Можно ввести только цифры от 1 до 5')
-    user_data = get_user_data(user_id)
+    user_data = USER_DATA
     user_bdate = user_data['bdate']
     user_music = user_data['music']
     user_interests = user_data['interests']
@@ -265,10 +266,19 @@ def get_top10(user_id):
                                     'likes': (photo.get('likes')).get('count'),
                                     'url': sorted(photo.get('sizes'),
                                                   key=lambda size: size.get('type'), reverse=True)[0].get('url')})
-        match.update({'photo1': sorted(reworked_photos, key=lambda pic: pic.get('likes'), reverse=True)[0].get('url'),
-                      'photo2': sorted(reworked_photos, key=lambda pic: pic.get('likes'), reverse=True)[1].get('url'),
-                      'photo3': sorted(reworked_photos, key=lambda pic: pic.get('likes'), reverse=True)[2].get('url'),
-                      'profile_url': f'https://vk.com/id{match.get("id")}'})
+        try:
+            match.update({'profile_url': f'https://vk.com/id{match.get("id")}',
+                          'photo1': sorted(reworked_photos, key=lambda pic: pic.get('likes'), reverse=True)[0].get('url')})
+        except IndexError:
+            match.update({'profile_url': f'https://vk.com/id{match.get("id")}', 'photo1': 'Фото не найдено'})
+        try:
+            match.update({'photo2': sorted(reworked_photos, key=lambda pic: pic.get('likes'), reverse=True)[1].get('url')})
+        except IndexError:
+            match.update({'photo2': 'Фото не найдено'})
+        try:
+            match.update({'photo3': sorted(reworked_photos, key=lambda pic: pic.get('likes'), reverse=True)[2].get('url')})
+        except IndexError:
+            match.update({'photo3': 'Фото не найдено'})
     with open('top10.json', 'w', encoding='utf-8') as f:
         json.dump(top10, f, ensure_ascii=False, indent=4)
     print('Топ10 профилей загружено в файл')
@@ -276,6 +286,7 @@ def get_top10(user_id):
 
 
 def store_to_db(user_id):
+    get_user_data(user_id)
     data = get_top10(user_id)
     for match in data:
         if not list(b_coll.find({'id': match.get('id')})):
@@ -286,5 +297,5 @@ def store_to_db(user_id):
 if __name__ == '__main__':
     store_to_db(input('Введите имя пользователя или ID: '))
 
-# 485052958e68529d220e69ab3e3023c4bd4998e82b9a6c541aadbefd6d2185c823f9d8b1cbc1ce756b317
+# 2cf3437ecbb82e410781b3050c3cddab55ec962056685c16bb6f490f85cdbd09a80c1d6c44e3ba3a8101d
 # erezerblade
